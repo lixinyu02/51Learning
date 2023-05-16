@@ -1,0 +1,1111 @@
+C51 COMPILER V9.60.7.0   MAIN                                                              05/16/2023 22:41:48 PAGE 1   
+
+
+C51 COMPILER V9.60.7.0, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN main.OBJ
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND TABS(2)
+
+line level    source
+
+   1          #include <reg51.h>
+   2          #include <intrins.h>    //??_nop_( )?????????
+   3          #define uchar unsigned char
+   4          #define uint unsigned int
+   5          
+   6          sbit led0=P1^0;//????LED?
+   7          sbit led1=P1^1;//????LED?
+   8          bit led;//???????
+   9          
+  10          //???
+  11          sbit smg0=P2^2; //?????
+  12          sbit smg1=P2^3;
+  13          sbit smg2=P2^4;                  
+  14          #define duan P0 //?????
+  15          
+  16          //?????     0    1      2    3      4    5     6     7     8     9     -
+  17          uchar table[]={~0xC0,~0xF9,~0xA4,~0xB0,~0x99,~0x92,~0x82,~0xF8,~0x80,~0x90,~0xBF};
+  18          //????? ?????0~9?-
+  19          uchar table_dot[]={0xbf,0x86,0xdb,0xcf,0xe6,0xed,0xfd,0x87,0xff,0xef,~0xBF};
+  20          
+  21          //???
+  22          //????11.0592MHZ/s
+  23          #define T0time 46070
+  24            //  ????46080 
+  25            //  TH0=(65536-T0time)/256;
+  26            //  TL0=(65536-T0time)%256; 
+  27          uchar count=0;  //??1? T0???????
+  28          
+  29          //???
+  30          sbit BEEP=P1^5;
+  31          
+  32          //??
+  33          //???????????
+  34          uchar whereNow; //0:????;1:????;2:????;3:????;4:(??)???????
+  35          sbit K1=P3^1;   //??????
+  36          sbit K2=P3^0;
+  37          sbit K3=P3^2;
+  38          sbit K4=P3^3;
+  39          //?????????? 
+  40          #define shanCount 128
+  41          uchar blankCount;//???? ????
+  42          uchar normalCount;//???? ????
+  43          
+  44          //??
+  45          uchar shi=0,fen=0,miao=0; //??????? ????
+  46          
+  47          //??
+  48          uchar clockSetLocation;//????????? 0,???,?????????
+  49          
+  50          //??
+  51          uchar alarmSetLocation;//????????????
+  52          uchar shi1=0,fen1=0,miao1=10;//??????? ???? 
+  53          bit alarmOnOff;//????????
+  54          bit alarmSetOrNot;//??????????
+  55          
+C51 COMPILER V9.60.7.0   MAIN                                                              05/16/2023 22:41:48 PAGE 2   
+
+  56          //??
+  57          uchar cldSetLocation;//????????????
+  58          uint year=2022; //?? ? ????
+  59          uchar month=11,day=11;//?? ??? ????
+  60          #define minYear 2022
+  61          #define maxYear 2050
+  62          //?????????????
+  63          bit isLeapYear; //??????? 1,?;0,??
+  64          bit cldSetOrNot;//??????????
+  65          uchar commonYearTable[]={0,31,28,31,30,31,30,31,31,30,31,30,31};//???????????
+  66          uchar leapYearTable[]={0,31,29,31,30,31,30,31,31,30,31,30,31};  //???????????
+  67          //????????????index[0]?,???????????index[month],????
+  68          
+  69          //--------------------------------------------------------------------------------
+  70          
+  71          void delay()  //???
+  72          {
+  73   1        uchar i;
+  74   1        for(i=0;i<128;i++);
+  75   1      }
+  76          
+  77          
+  78          void delay_10ms(uchar c)   //??????? 10ms
+  79          {
+  80   1          uchar a,b;
+  81   1          for(;c>0;c--)
+  82   1              for(b=38;b>0;b--)
+  83   1                  for(a=130;a>0;a--);
+  84   1      }
+  85          
+  86          void smg(uchar wei,uchar number)//??????????
+  87          {
+  88   1        switch(wei)//?????
+  89   1        {
+  90   2        case 7:smg2=1;smg1=1;smg0=1;break;
+  91   2        case 6:smg2=1;smg1=1;smg0=0;break;
+  92   2        case 5:smg2=1;smg1=0;smg0=1;break;
+  93   2        case 4:smg2=1;smg1=0;smg0=0;break;
+  94   2        case 3:smg2=0;smg1=1;smg0=1;break;
+  95   2        case 2:smg2=0;smg1=1;smg0=0;break;
+  96   2        case 1:smg2=0;smg1=0;smg0=1;break;
+  97   2        case 0:smg2=0;smg1=0;smg0=0;break;
+  98   2        }
+  99   1        duan=number;//??
+ 100   1        delay();//???
+ 101   1        duan=0x00;//??
+ 102   1      }
+ 103          
+ 104          //void smg_display//????????
+ 105          //(uchar duan7,uchar duan6,uchar duan5,uchar duan4,uchar duan3,uchar duan2,uchar duan1,uchar duan0)
+ 106          //{
+ 107          //smg(7,duan7);
+ 108          //smg(6,duan6);
+ 109          //smg(5,duan5);
+ 110          //smg(4,duan4);
+ 111          //smg(3,duan3);
+ 112          //smg(2,duan2);
+ 113          //smg(1,duan1);
+ 114          //smg(0,duan0);
+ 115          //}
+ 116          
+ 117          
+C51 COMPILER V9.60.7.0   MAIN                                                              05/16/2023 22:41:48 PAGE 3   
+
+ 118          void timer0_initial()//--------------------------???T0???
+ 119          {
+ 120   1        TMOD=0x01;
+ 121   1        TH0=(65536-T0time)/256;//???11.0592MHZ
+ 122   1        TL0=(65536-T0time)%256;
+ 123   1        EA=1;
+ 124   1        ET0=1;
+ 125   1        TR0=1;
+ 126   1        TR1=0;
+ 127   1      }
+ 128          
+ 129          
+ 130          void is_leap_year()//--------------------------???????(???????????)
+ 131          {
+ 132   1        if((year%4==0 && year%100!=0) || (year%400==0))
+ 133   1        isLeapYear=1;
+ 134   1        else
+ 135   1        isLeapYear=0;
+ 136   1      }
+ 137          
+ 138          void serviceTimer0() interrupt 1//-----------------------??????
+ 139          {
+ 140   1        TH0=(65536-T0time)/256;//???????
+ 141   1        TL0=(65536-T0time)%256;
+ 142   1        count++;//???????+1
+ 143   1        if(20==count)//???????20?,?+1
+ 144   1        {
+ 145   2          miao++;
+ 146   2          count=0;//???????
+ 147   2        }
+ 148   1        if(60==miao)//?????60?,?+1
+ 149   1        {
+ 150   2          fen++;
+ 151   2          miao=0;//?????
+ 152   2        }
+ 153   1        if(60==fen)//?????60?,?+1
+ 154   1        {
+ 155   2          shi++;
+ 156   2          fen=0;//?????
+ 157   2        }
+ 158   1        if(24==shi)//?????24?,?+1
+ 159   1        {   
+ 160   2          day++;
+ 161   2          shi=0;//?????
+ 162   2        } 
+ 163   1        if(0==isLeapYear)//?????  
+ 164   1        { 
+ 165   2          if(day>commonYearTable[month])
+ 166   2          {
+ 167   3             day=1;//???????????,???1
+ 168   3             month++;
+ 169   3          }
+ 170   2        }else     //?????
+ 171   1        {
+ 172   2          if(day>leapYearTable[month])
+ 173   2          {
+ 174   3             day=1;//???????????,???1
+ 175   3             month++;
+ 176   3          }
+ 177   2        }   
+ 178   1        if(month>12)
+ 179   1        {
+C51 COMPILER V9.60.7.0   MAIN                                                              05/16/2023 22:41:48 PAGE 4   
+
+ 180   2          month=1;//???????12,???1
+ 181   2          year++;
+ 182   2        }
+ 183   1        if(year>maxYear)
+ 184   1        {
+ 185   2          year=minYear;//???????????,?????????
+ 186   2        }
+ 187   1      }
+ 188          
+ 189          
+ 190          void clock_display()//-------------------------???????????
+ 191          {
+ 192   1        //???? 
+ 193   1          //??????????????????0,??????????
+ 194   1          if(1==clockSetLocation&&blankCount>0)
+ 195   1          {
+ 196   2            smg(7,0x00);
+ 197   2            blankCount--;
+ 198   2          }
+ 199   1          //??????????????????0,??????????
+ 200   1          else if(1==clockSetLocation&&normalCount>0)
+ 201   1          {
+ 202   2            smg(7,table[shi/10]);
+ 203   2            normalCount--;
+ 204   2          }else if(1==clockSetLocation)
+ 205   1          {
+ 206   2            blankCount=shanCount;//???????
+ 207   2            normalCount=shanCount;  
+ 208   2          }else
+ 209   1          smg(7,table[shi/10]);
+ 210   1      
+ 211   1        //???? 
+ 212   1          //??????????????????0,??????????
+ 213   1          if(1==clockSetLocation&&blankCount>0)
+ 214   1          {
+ 215   2            smg(6,0x00);
+ 216   2            blankCount--;
+ 217   2          }
+ 218   1          //??????????????????0,??????????
+ 219   1          else if(1==clockSetLocation&&normalCount>0)
+ 220   1          {
+ 221   2            smg(6,table[shi%10]);
+ 222   2            normalCount--;
+ 223   2          }else if(1==clockSetLocation)
+ 224   1          {
+ 225   2            blankCount=shanCount;//???????
+ 226   2            normalCount=shanCount;  
+ 227   2          }else
+ 228   1          smg(6,table[shi%10]);
+ 229   1      
+ 230   1        //- 
+ 231   1          smg(5,table[10]);
+ 232   1      
+ 233   1        //???? 
+ 234   1          //??????????????????0,??????????
+ 235   1          if(2==clockSetLocation&&blankCount>0)
+ 236   1          {
+ 237   2            smg(4,0x00);
+ 238   2            blankCount--;
+ 239   2          }
+ 240   1          //??????????????????0,??????????
+ 241   1          else if(2==clockSetLocation&&normalCount>0)
+C51 COMPILER V9.60.7.0   MAIN                                                              05/16/2023 22:41:48 PAGE 5   
+
+ 242   1          {
+ 243   2            smg(4,table[fen/10]);
+ 244   2            normalCount--;
+ 245   2          }else if(2==clockSetLocation)
+ 246   1          {
+ 247   2            blankCount=shanCount;//???????
+ 248   2            normalCount=shanCount;  
+ 249   2          }else
+ 250   1          smg(4,table[fen/10]);
+ 251   1      
+ 252   1        //???? 
+ 253   1          //??????????????????0,??????????
+ 254   1          if(2==clockSetLocation&&blankCount>0)
+ 255   1          {
+ 256   2            smg(3,0x00);
+ 257   2            blankCount--;
+ 258   2          }
+ 259   1          //??????????????????0,??????????
+ 260   1          else if(2==clockSetLocation&&normalCount>0)
+ 261   1          {
+ 262   2            smg(3,table[fen%10]);
+ 263   2            normalCount--;
+ 264   2          }else if(2==clockSetLocation)
+ 265   1          {
+ 266   2            blankCount=shanCount;//???????
+ 267   2            normalCount=shanCount;  
+ 268   2          }else
+ 269   1          smg(3,table[fen%10]);
+ 270   1      
+ 271   1        //- 
+ 272   1          smg(2,table[10]);
+ 273   1      
+ 274   1        //???? 
+ 275   1          //??????????????????0,??????????
+ 276   1          if(3==clockSetLocation&&blankCount>0)
+ 277   1          {
+ 278   2            smg(1,0x00);
+ 279   2            blankCount--;
+ 280   2          }
+ 281   1          //??????????????????0,??????????
+ 282   1          else if(3==clockSetLocation&&normalCount>0)
+ 283   1          {
+ 284   2            smg(1,table[miao/10]);
+ 285   2            normalCount--;
+ 286   2          }else if(3==clockSetLocation)
+ 287   1          {
+ 288   2            blankCount=shanCount;//???????
+ 289   2            normalCount=shanCount;  
+ 290   2          }else
+ 291   1          smg(1,table[miao/10]);
+ 292   1      
+ 293   1        //???? 
+ 294   1          //??????????????????0,??????????
+ 295   1          if(3==clockSetLocation&&blankCount>0)
+ 296   1          {
+ 297   2            smg(0,0x00);
+ 298   2            blankCount--;
+ 299   2          }
+ 300   1          //??????????????????0,??????????
+ 301   1          else if(3==clockSetLocation&&normalCount>0)
+ 302   1          {
+ 303   2            smg(0,table[miao%10]);
+C51 COMPILER V9.60.7.0   MAIN                                                              05/16/2023 22:41:48 PAGE 6   
+
+ 304   2            normalCount--;
+ 305   2          }else if(3==clockSetLocation)
+ 306   1          {
+ 307   2            blankCount=shanCount;//???????
+ 308   2            normalCount=shanCount;  
+ 309   2          }else
+ 310   1          smg(0,table[miao%10]);
+ 311   1      }
+ 312          
+ 313          
+ 314          void clock_set()//--------------------------??(??????)
+ 315          {
+ 316   1        if(0==K1 && 0==whereNow)  //?????????????????K1
+ 317   1        {
+ 318   2          delay_10ms(3);//??
+ 319   2          if(0==K1)//????????
+ 320   2          { 
+ 321   3            while(0==K1);//????
+ 322   3            delay_10ms(3);//??
+ 323   3            whereNow=1;
+ 324   3            clockSetLocation=1;
+ 325   3            TR0=0;
+ 326   3          }
+ 327   2        }
+ 328   1        if(1==whereNow) //??????,4??????????????
+ 329   1        {
+ 330   2          if(0==K1)//????K1:????
+ 331   2          {
+ 332   3            delay_10ms(3);//??
+ 333   3            if(0==K1)//????????
+ 334   3            {  
+ 335   4              while(0==K1);//??????
+ 336   4              delay_10ms(3);//??
+ 337   4              clockSetLocation++;//????+1
+ 338   4              if(clockSetLocation>3)clockSetLocation=1;
+ 339   4            }
+ 340   3          }
+ 341   2      
+ 342   2            if(1==clockSetLocation)//??“?”??
+ 343   2            {
+ 344   3              if(0==K2)//??K2:??-1
+ 345   3              {
+ 346   4                delay_10ms(3);//??
+ 347   4                if(0==K2)//????????
+ 348   4                {  
+ 349   5                  while(0==K2);//??????
+ 350   5                  delay_10ms(3);//??
+ 351   5                  if(0==shi)shi=24;
+ 352   5                  shi--;
+ 353   5                } 
+ 354   4              }
+ 355   3              if(0==K3)//??K3:??+1
+ 356   3              {
+ 357   4                delay_10ms(3);//??
+ 358   4                if(0==K3)//????????
+ 359   4                {  
+ 360   5                  while(0==K3);//??????
+ 361   5                  delay_10ms(3);//??
+ 362   5                  shi++;
+ 363   5                  if(24==shi)shi=0;
+ 364   5                } 
+ 365   4              }
+C51 COMPILER V9.60.7.0   MAIN                                                              05/16/2023 22:41:48 PAGE 7   
+
+ 366   3            }
+ 367   2      
+ 368   2            if(2==clockSetLocation)//??“?”??
+ 369   2            {
+ 370   3              if(0==K2)//??K2:??-1
+ 371   3              {
+ 372   4                delay_10ms(3);//??
+ 373   4                if(0==K2)//????????
+ 374   4                {  
+ 375   5                  while(0==K2);//??????
+ 376   5                  delay_10ms(3);//??
+ 377   5                  if(0==fen)fen=60;
+ 378   5                  fen--;
+ 379   5                } 
+ 380   4              }
+ 381   3              if(0==K3)//??K3:??+1
+ 382   3              {
+ 383   4                delay_10ms(3);//??
+ 384   4                if(0==K3)//????????
+ 385   4                {  
+ 386   5                  while(0==K3);//??????
+ 387   5                  delay_10ms(3);//??
+ 388   5                  fen++;
+ 389   5                  if(60==fen)fen=0;
+ 390   5                } 
+ 391   4              }
+ 392   3            }
+ 393   2      
+ 394   2            if(3==clockSetLocation)//??“?”??
+ 395   2            {
+ 396   3              if(0==K2)//??K2:??-1
+ 397   3              {
+ 398   4                delay_10ms(3);//??
+ 399   4                if(0==K2)//????????
+ 400   4                {  
+ 401   5                  while(0==K2);//??????
+ 402   5                  delay_10ms(3);//??
+ 403   5                  if(0==miao)miao=60;
+ 404   5                  miao--;
+ 405   5                } 
+ 406   4              }
+ 407   3              if(0==K3)//??K3:??+1
+ 408   3              {
+ 409   4                delay_10ms(3);//??
+ 410   4                if(0==K3)//????????
+ 411   4                {  
+ 412   5                  while(0==K3);//??????
+ 413   5                  delay_10ms(3);//??
+ 414   5                  miao++;
+ 415   5                  if(60==miao)miao=0;
+ 416   5                } 
+ 417   4              }
+ 418   3            } 
+ 419   2         
+ 420   2        if(0==K4)//????K4:?????????,????????
+ 421   2          {
+ 422   3          delay_10ms(3);//??
+ 423   3          if(0==K4)//????????
+ 424   3          {  
+ 425   4            while(0==K4);//??????
+ 426   4            delay_10ms(3);//??
+ 427   4            clockSetLocation=0;
+C51 COMPILER V9.60.7.0   MAIN                                                              05/16/2023 22:41:48 PAGE 8   
+
+ 428   4            whereNow=0;
+ 429   4            TR0=1;
+ 430   4          }
+ 431   3        } 
+ 432   2        }
+ 433   1      }
+ 434          
+ 435          
+ 436          
+ 437          
+ 438          void alarm_display()//----------------------???????????
+ 439          {
+ 440   1        if(0==alarmOnOff)//??????
+ 441   1          smg(7,0xf3);//'P.'??STOP,????
+ 442   1        if(1==alarmOnOff)//??????
+ 443   1          smg(7,0xf9);//'E.'??OPEN,???
+ 444   1        
+ 445   1      
+ 446   1      //????
+ 447   1        //??????????????????0,??????????
+ 448   1        if(1==alarmSetLocation&&blankCount>0)
+ 449   1        {
+ 450   2          smg(5,0x00);
+ 451   2          blankCount--;
+ 452   2        }
+ 453   1        //??????????????????0,??????????
+ 454   1        else if(1==alarmSetLocation&&normalCount>0)
+ 455   1        {
+ 456   2          smg(5,table[shi1/10]);
+ 457   2          normalCount--;
+ 458   2        }else if(1==alarmSetLocation)
+ 459   1        {
+ 460   2          blankCount=shanCount;//???????
+ 461   2          normalCount=shanCount;  
+ 462   2        }else
+ 463   1        smg(5,table[shi1/10]);
+ 464   1      //????
+ 465   1        //??????????????????0,??????????
+ 466   1        if(1==alarmSetLocation&&blankCount>0)
+ 467   1        {
+ 468   2          smg(4,0x00);
+ 469   2          blankCount--;
+ 470   2        }
+ 471   1        //??????????????????0,??????????
+ 472   1        else if(1==alarmSetLocation&&normalCount>0)
+ 473   1        {
+ 474   2          smg(4,table_dot[shi1%10]);
+ 475   2          normalCount--;
+ 476   2        }else if(1==alarmSetLocation)
+ 477   1        {
+ 478   2          blankCount=shanCount;//???????
+ 479   2          normalCount=shanCount;  
+ 480   2        }else
+ 481   1        smg(4,table_dot[shi1%10]);
+ 482   1      //????
+ 483   1        //??????????????????0,??????????
+ 484   1        if(2==alarmSetLocation&&blankCount>0)
+ 485   1        {
+ 486   2          smg(3,0x00);
+ 487   2          blankCount--;
+ 488   2        }
+ 489   1        //??????????????????0,??????????
+C51 COMPILER V9.60.7.0   MAIN                                                              05/16/2023 22:41:48 PAGE 9   
+
+ 490   1        else if(2==alarmSetLocation&&normalCount>0)
+ 491   1        {
+ 492   2          smg(3,table[fen1/10]);
+ 493   2          normalCount--;
+ 494   2        }else if(2==alarmSetLocation)
+ 495   1        {
+ 496   2          blankCount=shanCount;//???????
+ 497   2          normalCount=shanCount;  
+ 498   2        }else
+ 499   1        smg(3,table[fen1/10]);
+ 500   1      //????
+ 501   1        //??????????????????0,??????????
+ 502   1        if(2==alarmSetLocation&&blankCount>0)
+ 503   1        {
+ 504   2          smg(2,0x00);
+ 505   2          blankCount--;
+ 506   2        }
+ 507   1        //??????????????????0,??????????
+ 508   1        else if(2==alarmSetLocation&&normalCount>0)
+ 509   1        {
+ 510   2          smg(2,table_dot[fen1%10]);
+ 511   2          normalCount--;
+ 512   2        }else if(2==alarmSetLocation)
+ 513   1        {
+ 514   2          blankCount=shanCount;//???????
+ 515   2          normalCount=shanCount;  
+ 516   2        }else
+ 517   1        smg(2,table_dot[fen1%10]);
+ 518   1      //????
+ 519   1        //??????????????????0,??????????
+ 520   1        if(3==alarmSetLocation&&blankCount>0)
+ 521   1        {
+ 522   2          smg(1,0x00);
+ 523   2          blankCount--;
+ 524   2        }
+ 525   1        //??????????????????0,??????????
+ 526   1        else if(3==alarmSetLocation&&normalCount>0)
+ 527   1        {
+ 528   2          smg(1,table[miao1/10]);
+ 529   2          normalCount--;
+ 530   2        }else if(3==alarmSetLocation)
+ 531   1        {
+ 532   2          blankCount=shanCount;//???????
+ 533   2          normalCount=shanCount;  
+ 534   2        }else
+ 535   1        smg(1,table[miao1/10]);
+ 536   1      //????
+ 537   1        //??????????????????0,??????????
+ 538   1        if(3==alarmSetLocation&&blankCount>0)
+ 539   1        {
+ 540   2          smg(0,0x00);
+ 541   2          blankCount--;
+ 542   2        }
+ 543   1        //??????????????????0,??????????
+ 544   1        else if(3==alarmSetLocation&&normalCount>0)
+ 545   1        {
+ 546   2          smg(0,table_dot[miao1%10]);
+ 547   2          normalCount--;
+ 548   2        }else if(3==alarmSetLocation)
+ 549   1        {
+ 550   2          blankCount=shanCount;//???????
+ 551   2          normalCount=shanCount;  
+C51 COMPILER V9.60.7.0   MAIN                                                              05/16/2023 22:41:48 PAGE 10  
+
+ 552   2        }else
+ 553   1        smg(0,table_dot[miao1%10]);
+ 554   1      }
+ 555          
+ 556          
+ 557          void alarm_set()//----------------------????
+ 558          {
+ 559   1        if(0==whereNow && 0==K2)//?????????????????K2
+ 560   1        {
+ 561   2          delay_10ms(3);//??
+ 562   2          if(0==K2)//????????
+ 563   2          { 
+ 564   3            while(0==K2);//????
+ 565   3            delay_10ms(3);//??
+ 566   3            whereNow=2;
+ 567   3          }
+ 568   2        }
+ 569   1        
+ 570   1        if(2==whereNow)//?????????,?????????????????
+ 571   1        {
+ 572   2          if(0==K1)//????K1:????
+ 573   2          {
+ 574   3            delay_10ms(3);//??
+ 575   3            if(0==K1)//????????
+ 576   3            {  
+ 577   4              while(0==K1);//??????
+ 578   4              delay_10ms(3);//??
+ 579   4              alarmSetLocation++;//????+1
+ 580   4              if(4==alarmSetLocation)alarmOnOff=!alarmOnOff;
+ 581   4              if(alarmSetLocation>3)alarmSetLocation=0;   
+ 582   4            }
+ 583   3          }   
+ 584   2      
+ 585   2            if(1==alarmSetLocation)//??“?”??
+ 586   2            {
+ 587   3              if(0==K2)//??K2:??-1
+ 588   3              {
+ 589   4                delay_10ms(3);//??
+ 590   4                if(0==K2)//????????
+ 591   4                {  
+ 592   5                  while(0==K2);//??????
+ 593   5                  delay_10ms(3);//??
+ 594   5                  if(0==shi1)shi1=24;
+ 595   5                  shi1--;
+ 596   5                } 
+ 597   4              }
+ 598   3              if(0==K3)//??K3:??+1
+ 599   3              {
+ 600   4                delay_10ms(3);//??
+ 601   4                if(0==K3)//????????
+ 602   4                {  
+ 603   5                  while(0==K3);//??????
+ 604   5                  delay_10ms(3);//??
+ 605   5                  shi1++;
+ 606   5                  if(24==shi1)shi1=0;
+ 607   5                } 
+ 608   4              }
+ 609   3            }
+ 610   2      
+ 611   2            if(2==alarmSetLocation)//??“?”??
+ 612   2            {
+ 613   3              if(0==K2)//??K2:??-1
+C51 COMPILER V9.60.7.0   MAIN                                                              05/16/2023 22:41:48 PAGE 11  
+
+ 614   3              {
+ 615   4                delay_10ms(3);//??
+ 616   4                if(0==K2)//????????
+ 617   4                {  
+ 618   5                  while(0==K2);//??????
+ 619   5                  delay_10ms(3);//??
+ 620   5                  if(0==fen1)fen1=60;
+ 621   5                  fen1--;
+ 622   5                } 
+ 623   4              }
+ 624   3              if(0==K3)//??K3:??+1
+ 625   3              {
+ 626   4                delay_10ms(3);//??
+ 627   4                if(0==K3)//????????
+ 628   4                {  
+ 629   5                  while(0==K3);//??????
+ 630   5                  delay_10ms(3);//??
+ 631   5                  fen1++;
+ 632   5                  if(60==fen1)fen1=0;
+ 633   5                } 
+ 634   4              }
+ 635   3            }
+ 636   2      
+ 637   2            if(3==alarmSetLocation)//??“?”??
+ 638   2            {
+ 639   3              if(0==K2)//??K2:??-1
+ 640   3              {
+ 641   4                delay_10ms(3);//??
+ 642   4                if(0==K2)//????????
+ 643   4                {  
+ 644   5                  while(0==K2);//??????
+ 645   5                  delay_10ms(3);//??
+ 646   5                  if(0==miao1)miao1=60;
+ 647   5                  miao1--;
+ 648   5                } 
+ 649   4              }
+ 650   3              if(0==K3)//??K3:??+1
+ 651   3              {
+ 652   4                delay_10ms(3);//??
+ 653   4                if(0==K3)//????????
+ 654   4                {  
+ 655   5                  while(0==K3);//??????
+ 656   5                  delay_10ms(3);//??
+ 657   5                  miao1++;
+ 658   5                  if(60==miao1)miao1=0;
+ 659   5                } 
+ 660   4              } 
+ 661   3            }
+ 662   2      
+ 663   2            if(0==K4)//????K4:?????????,????????
+ 664   2              {
+ 665   3              delay_10ms(3);//??
+ 666   3              if(0==K4)//????????
+ 667   3              {  
+ 668   4                while(0==K4);//??????
+ 669   4                delay_10ms(3);//??
+ 670   4                alarmSetLocation=0;
+ 671   4                whereNow=0;
+ 672   4              }
+ 673   3            } 
+ 674   2        } 
+ 675   1      }
+C51 COMPILER V9.60.7.0   MAIN                                                              05/16/2023 22:41:48 PAGE 12  
+
+ 676          
+ 677          void alarm_exe()//---------------------------------------------????
+ 678          //???????????????,??????:
+ 679          //1???????=??????
+ 680          //2?????????
+ 681          //3??????????
+ 682          //
+ 683          //?:???????????????,?????
+ 684          { 
+ 685   1        
+ 686   1        if( shi==shi1&&fen==fen1&&miao==miao1 && 1==alarmOnOff && 0==whereNow)
+ 687   1        {
+ 688   2          while(1==K1 && 1==K2 && 1==K3 && 1==K4)
+ 689   2          {
+ 690   3          BEEP=~BEEP;
+ 691   3          smg(7,0x77);//'A'
+ 692   3            BEEP=~BEEP;
+ 693   3          smg(6,0xb8);//'L.'
+ 694   3            BEEP=~BEEP;
+ 695   3          smg(5,table[shi1/10]);
+ 696   3            BEEP=~BEEP;
+ 697   3          smg(4,table_dot[shi1%10]);
+ 698   3            BEEP=~BEEP;
+ 699   3          smg(3,table[fen1/10]);
+ 700   3            BEEP=~BEEP;
+ 701   3          smg(2,table_dot[fen1%10]);
+ 702   3            BEEP=~BEEP;
+ 703   3          smg(1,table[miao1/10]);
+ 704   3            BEEP=~BEEP;
+ 705   3          smg(0,table[miao1%10]);
+ 706   3            BEEP=~BEEP;
+ 707   3          }
+ 708   2          while(0==K1 || 0==K2 || 0==K3 || 0==K4);//??,????????
+ 709   2          delay_10ms(3);
+ 710   2        }
+ 711   1      }
+ 712          
+ 713          
+ 714          void cld_display()//------------------------???????????
+ 715          {
+ 716   1      //????
+ 717   1        //??????????????????0,??????????
+ 718   1        if(1==cldSetLocation&&blankCount>0)
+ 719   1        {
+ 720   2          smg(7,0x00);
+ 721   2          blankCount--;
+ 722   2        }
+ 723   1        //??????????????????0,??????????
+ 724   1        else if(1==cldSetLocation&&normalCount>0)
+ 725   1        {
+ 726   2          smg(7,table[year/1000]);
+ 727   2          normalCount--;
+ 728   2        }else if(1==cldSetLocation)
+ 729   1        {
+ 730   2          blankCount=shanCount;//???????
+ 731   2          normalCount=shanCount;  
+ 732   2        }else
+ 733   1        smg(7,table[year/1000]);
+ 734   1      //????
+ 735   1        //??????????????????0,??????????
+ 736   1        if(1==cldSetLocation&&blankCount>0)
+ 737   1        {
+C51 COMPILER V9.60.7.0   MAIN                                                              05/16/2023 22:41:48 PAGE 13  
+
+ 738   2          smg(6,0x00);
+ 739   2          blankCount--;
+ 740   2        }
+ 741   1        //??????????????????0,??????????
+ 742   1        else if(1==cldSetLocation&&normalCount>0)
+ 743   1        {
+ 744   2          smg(6,table[year/100%10]);
+ 745   2          normalCount--;
+ 746   2        }else if(1==cldSetLocation)
+ 747   1        {
+ 748   2          blankCount=shanCount;//???????
+ 749   2          normalCount=shanCount;  
+ 750   2        }else
+ 751   1        smg(6,table[year/100%10]);
+ 752   1      //????
+ 753   1        //??????????????????0,??????????
+ 754   1        if(1==cldSetLocation&&blankCount>0)
+ 755   1        {
+ 756   2          smg(5,0x00);
+ 757   2          blankCount--;
+ 758   2        }
+ 759   1        //??????????????????0,??????????
+ 760   1        else if(1==cldSetLocation&&normalCount>0)
+ 761   1        {
+ 762   2          smg(5,table[year%100/10]);
+ 763   2          normalCount--;
+ 764   2        }else if(1==cldSetLocation)
+ 765   1        {
+ 766   2          blankCount=shanCount;//???????
+ 767   2          normalCount=shanCount;  
+ 768   2        }else
+ 769   1        smg(5,table[year%100/10]);
+ 770   1      //????
+ 771   1        //??????????????????0,??????????
+ 772   1        if(1==cldSetLocation&&blankCount>0)
+ 773   1        {
+ 774   2          smg(4,0x00);
+ 775   2          blankCount--;
+ 776   2        }
+ 777   1        //??????????????????0,??????????
+ 778   1        else if(1==cldSetLocation&&normalCount>0)
+ 779   1        {
+ 780   2          smg(4,table_dot[year%10]);
+ 781   2          normalCount--;
+ 782   2        }else if(1==cldSetLocation)
+ 783   1        {
+ 784   2          blankCount=shanCount;//???????
+ 785   2          normalCount=shanCount;  
+ 786   2        }else
+ 787   1        smg(4,table_dot[year%10]);
+ 788   1      //????
+ 789   1        //??????????????????0,??????????
+ 790   1        if(2==cldSetLocation&&blankCount>0)
+ 791   1        {
+ 792   2          smg(3,0x00);
+ 793   2          blankCount--;
+ 794   2        }
+ 795   1        //??????????????????0,??????????
+ 796   1        else if(2==cldSetLocation&&normalCount>0)
+ 797   1        {
+ 798   2          smg(3,table[month/10]);
+ 799   2          normalCount--;
+C51 COMPILER V9.60.7.0   MAIN                                                              05/16/2023 22:41:48 PAGE 14  
+
+ 800   2        }else if(2==cldSetLocation)
+ 801   1        {
+ 802   2          blankCount=shanCount;//???????
+ 803   2          normalCount=shanCount;  
+ 804   2        }else
+ 805   1        smg(3,table[month/10]);
+ 806   1      //????
+ 807   1        //??????????????????0,??????????
+ 808   1        if(2==cldSetLocation&&blankCount>0)
+ 809   1        {
+ 810   2          smg(2,0x00);
+ 811   2          blankCount--;
+ 812   2        }
+ 813   1        //??????????????????0,??????????
+ 814   1        else if(2==cldSetLocation&&normalCount>0)
+ 815   1        {
+ 816   2          smg(2,table_dot[month%10]);
+ 817   2          normalCount--;
+ 818   2        }else if(2==cldSetLocation)
+ 819   1        {
+ 820   2          blankCount=shanCount;//???????
+ 821   2          normalCount=shanCount;  
+ 822   2        }else
+ 823   1        smg(2,table_dot[month%10]);
+ 824   1      //????
+ 825   1        //??????????????????0,??????????
+ 826   1        if(3==cldSetLocation&&blankCount>0)
+ 827   1        {
+ 828   2          smg(1,0x00);
+ 829   2          blankCount--;
+ 830   2        }
+ 831   1        //??????????????????0,??????????
+ 832   1        else if(3==cldSetLocation&&normalCount>0)
+ 833   1        {
+ 834   2          smg(1,table[day/10]);
+ 835   2          normalCount--;
+ 836   2        }else if(3==cldSetLocation)
+ 837   1        {
+ 838   2          blankCount=shanCount;//???????
+ 839   2          normalCount=shanCount;  
+ 840   2        }else
+ 841   1        smg(1,table[day/10]);
+ 842   1      //????
+ 843   1        //??????????????????0,??????????
+ 844   1        if(3==cldSetLocation&&blankCount>0)
+ 845   1        {
+ 846   2          smg(0,0x00);
+ 847   2          blankCount--;
+ 848   2        }
+ 849   1        //??????????????????0,??????????
+ 850   1        else if(3==cldSetLocation&&normalCount>0)
+ 851   1        {
+ 852   2          smg(0,table_dot[day%10]);
+ 853   2          normalCount--;
+ 854   2        }else if(3==cldSetLocation)
+ 855   1        {
+ 856   2          blankCount=shanCount;//???????
+ 857   2          normalCount=shanCount;  
+ 858   2        }else
+ 859   1        smg(0,table_dot[day%10]); 
+ 860   1      }
+ 861          
+C51 COMPILER V9.60.7.0   MAIN                                                              05/16/2023 22:41:48 PAGE 15  
+
+ 862          
+ 863          void cld_set()//---------------------------????
+ 864          {
+ 865   1        if(0==whereNow && 0==K3)//?????????????????K3
+ 866   1        {
+ 867   2          delay_10ms(3);//??
+ 868   2          if(0==K3)//????????
+ 869   2          { 
+ 870   3            while(0==K3);//????
+ 871   3            delay_10ms(3);//??
+ 872   3            whereNow=3;
+ 873   3          }
+ 874   2        }
+ 875   1        
+ 876   1        if(3==whereNow)//?????????,?????????????????
+ 877   1        {
+ 878   2          if(0==K1)//????K1:????
+ 879   2          {
+ 880   3            delay_10ms(3);//??
+ 881   3            if(0==K1)//????????
+ 882   3            {  
+ 883   4              while(0==K1);//??????
+ 884   4              delay_10ms(3);//??
+ 885   4              cldSetLocation++;//????+1
+ 886   4              if(cldSetLocation>3)cldSetLocation=1;   
+ 887   4            }
+ 888   3          }   
+ 889   2      
+ 890   2            if(1==cldSetLocation)//??“?”??
+ 891   2            {
+ 892   3              if(0==K2)//??K2:??-1
+ 893   3              {
+ 894   4                delay_10ms(3);//??
+ 895   4                if(0==K2)//????????
+ 896   4                {  
+ 897   5                  while(0==K2);//??????
+ 898   5                  delay_10ms(3);//??
+ 899   5                  if(minYear==year)year=minYear+1;//?????????????????
+ 900   5                  year--;
+ 901   5                } 
+ 902   4              }
+ 903   3              if(0==K3)//??K3:??+1
+ 904   3              {
+ 905   4                delay_10ms(3);//??
+ 906   4                if(0==K3)//????????
+ 907   4                {  
+ 908   5                  while(0==K3);//??????
+ 909   5                  delay_10ms(3);//??
+ 910   5                  year++;
+ 911   5                  if(maxYear+1==year)year=maxYear;//?????????????????
+ 912   5                } 
+ 913   4              }
+ 914   3            }
+ 915   2      
+ 916   2            if(2==cldSetLocation)//??“?”??
+ 917   2            {
+ 918   3              if(0==K2)//??K2:??-1
+ 919   3              {
+ 920   4                delay_10ms(3);//??
+ 921   4                if(0==K2)//????????
+ 922   4                {  
+ 923   5                  while(0==K2);//??????
+C51 COMPILER V9.60.7.0   MAIN                                                              05/16/2023 22:41:48 PAGE 16  
+
+ 924   5                  delay_10ms(3);//??
+ 925   5                  if(1==month)month=13;
+ 926   5                  month--;
+ 927   5                } 
+ 928   4              }
+ 929   3              if(0==K3)//??K3:??+1
+ 930   3              {
+ 931   4                delay_10ms(3);//??
+ 932   4                if(0==K3)//????????
+ 933   4                {  
+ 934   5                  while(0==K3);//??????
+ 935   5                  delay_10ms(3);//??
+ 936   5                  month++;
+ 937   5                  if(13==month)month=1;
+ 938   5                } 
+ 939   4              }
+ 940   3            }
+ 941   2      
+ 942   2            if(3==cldSetLocation)//??“?”??
+ 943   2            {
+ 944   3              if(0==K2)//??K2:??-1
+ 945   3              {
+ 946   4                delay_10ms(3);//??
+ 947   4                if(0==K2)//????????
+ 948   4                {  
+ 949   5                  while(0==K2);//??????
+ 950   5                  delay_10ms(3);//??
+ 951   5                  if(day<=1)
+ 952   5                  {         
+ 953   6                    if(0==isLeapYear)//?????
+ 954   6                    day=commonYearTable[month]+1;
+ 955   6                    if(1==isLeapYear)//?????
+ 956   6                    day=leapYearTable[month]+1; 
+ 957   6                  } 
+ 958   5                  day--;
+ 959   5                } 
+ 960   4              }
+ 961   3              if(0==K3)//??K3:??+1
+ 962   3              {
+ 963   4                delay_10ms(3);//??
+ 964   4                if(0==K3)//????????
+ 965   4                {  
+ 966   5                  while(0==K3);//??????
+ 967   5                  delay_10ms(3);//??
+ 968   5                  day++;          
+ 969   5                  if(0==isLeapYear)//?????
+ 970   5                  {
+ 971   6                    if(day>commonYearTable[month])day=1;
+ 972   6                  }
+ 973   5                  if(1==isLeapYear)//?????
+ 974   5                  {
+ 975   6                    if(day>leapYearTable[month])day=1;
+ 976   6                  }
+ 977   5                } 
+ 978   4              } 
+ 979   3            }
+ 980   2      
+ 981   2            if(0==K4)//????K4:?????????,????????
+ 982   2              {
+ 983   3              delay_10ms(3);//??
+ 984   3              if(0==K4)//????????
+ 985   3              {  
+C51 COMPILER V9.60.7.0   MAIN                                                              05/16/2023 22:41:48 PAGE 17  
+
+ 986   4                while(0==K4);//??????
+ 987   4                delay_10ms(3);//??
+ 988   4                cldSetLocation=0;
+ 989   4                whereNow=0;
+ 990   4              }
+ 991   3            } 
+ 992   2        }   
+ 993   1      }
+ 994          
+ 995          void led_display()//-----------------???????
+ 996          {
+ 997   1        if(0==whereNow)
+ 998   1        {
+ 999   2          led0=1;
+1000   2          led1=0;
+1001   2        }
+1002   1        else
+1003   1        {
+1004   2          led0=0;
+1005   2          led1=1;
+1006   2        }
+1007   1      }
+1008          
+1009          
+1010          void start_show()//------------------????
+1011          {
+1012   1        uint t=1000;  
+1013   1        while(t--)//20221111(????????)
+1014   1        {
+1015   2          smg(7,table[2]);
+1016   2          smg(6,table[0]);
+1017   2          smg(5,table[2]);
+1018   2          smg(4,table[2]);
+1019   2          smg(3,table[1]);
+1020   2          smg(2,table[1]);
+1021   2          smg(1,table[1]);
+1022   2          smg(0,table[1]);
+1023   2        }
+1024   1        t=1000;//t??
+1025   1        while(t--)//LHL ELEC.
+1026   1        {
+1027   2          smg(7,0x38);//L
+1028   2          smg(6,0x76);//H
+1029   2          smg(5,0x38);//L
+1030   2          smg(4,0x00);//?
+1031   2          smg(3,0x79);//E
+1032   2          smg(2,0x38);//L
+1033   2          smg(1,0x79);//E
+1034   2          smg(0,0xb9);//C.
+1035   2        } 
+1036   1      }
+1037          
+1038          void main()
+1039          {
+1040   1        start_show(); //????
+1041   1        clockSetLocation=0; //
+1042   1        alarmSetOrNot=0;  //
+1043   1        alarmSetLocation=0; //
+1044   1        cldSetOrNot=0;    //
+1045   1        cldSetLocation=0;   //??????????????????0
+1046   1        alarmOnOff=0;   //??????
+1047   1        whereNow=0;     //??????????
+C51 COMPILER V9.60.7.0   MAIN                                                              05/16/2023 22:41:48 PAGE 18  
+
+1048   1        blankCount=shanCount; //
+1049   1        normalCount=shanCount;//?????????
+1050   1        timer0_initial(); //???T0???
+1051   1        led=led0;
+1052   1      
+1053   1        while(1)
+1054   1        {
+1055   2          is_leap_year(); //??????? 
+1056   2          if(0==whereNow || 1==whereNow)clock_display();//???????????
+1057   2          clock_set();  //??(??????)  
+1058   2          if(2==whereNow)alarm_display(); //???????????
+1059   2          alarm_set();  //????
+1060   2          alarm_exe();  //????
+1061   2          if(3==whereNow)cld_display();//???????????
+1062   2          cld_set();    //????
+1063   2          //led_display();      //???????
+1064   2        }
+1065   1      }0
+*** ERROR C141 IN LINE 1065 OF main.c: syntax error near '0', expected 'hdata'
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  1 ERROR(S)
